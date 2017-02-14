@@ -130,16 +130,35 @@
 						fakeAnswer1: $scope.fakeAnswer1,
 						fakeAnswer2: $scope.fakeAnswer2,
 					};
-					if($scope.question.length > 14)
-					{
-						$http.post("/new_question", data).then(function(res){
-							console.log(res);
-							window.location = "#!/";
-						});
+					try{
+						if($scope.question.length < 15)
+						{
+							validationError("Question should be at least 15 characters.");
+						}
+						else if(!$scope.realAnswer)
+						{
+							validationError("Missing real answer.");
+						}
+						else if(!$scope.fakeAnswer1)
+						{
+							validationError("Missing fake answer 1.");
+						}
+						else if(!$scope.fakeAnswer2)
+						{
+							validationError("Missing fake answer 2.");
+						}
+						else
+						{
+							$http.post("/new_question", data).then(function(res){
+								console.log(res);
+								success("Question added successfully.");
+								window.location = "#!/";
+							});
+						}
 					}
-					else
+					catch(e)
 					{
-						validationError("Question should be at least 15 characters.");
+						validationError("Some data was missing. Fill in all fields.");
 					}
 				};
 
