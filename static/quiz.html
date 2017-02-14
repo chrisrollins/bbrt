@@ -1,0 +1,14 @@
+<form style="padding: 100px;" ng-submit="submitQuiz()">
+	<div ng-repeat="question in questions track by $index">
+		{{$index + 1}}. {{question.question}}
+		<br><br>
+		<input type="radio" name="question{{$index}}" ng-model="answers[$index]" value="1"><span>{{question.scrambledAnswers[0]}}</span><br>
+		<input type="radio" name="question{{$index}}" ng-model="answers[$index]" value="2"><span>{{question.scrambledAnswers[1]}}</span><br>
+		<input type="radio" name="question{{$index}}" ng-model="answers[$index]" value="3"><span>{{question.scrambledAnswers[2]}}</span><br>
+	<br>
+	<br>
+	</div>
+	<br>
+	<input class="button" type="submit" name="submit" value="submit">
+	<a href="#!/"><button class="button">cancel</button></a>
+</form>

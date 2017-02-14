@@ -1,0 +1,254 @@
+<html ng-app="app">
+	<head>
+		<title></title>
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.1/angular.min.js"></script>
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.1/angular-route.min.js"></script>
+		
+		<script>
+			var app = angular.module("app", ["ngRoute"]);
+			var loggedIn = 0;
+
+			function validationError(message)
+			{
+				var valErr = document.createElement("p");
+				valErr.innerText = "Validation Error: " + message;
+				valErr.className = "valErr popupMsg";
+				document.body.appendChild(valErr);
+				setTimeout(function(){valErr.style.opacity = 0;}, 100);
+				setTimeout(function(){valErr.remove()}, 5000);
+				console.log("Validation Error:", message);
+			}
+
+			function success(message)
+			{
+				var success = document.createElement("p");
+				success.innerText = message;
+				success.className = "successMsg popupMsg";
+				document.body.appendChild(success);
+				setTimeout(function(){success.style.opacity = 0;}, 100);
+				setTimeout(function(){success.remove()}, 5000);
+				console.log(message);
+			}
+
+			function showResult(message)
+			{
+				var result = document.createElement("p");
+				result.innerText = "Result: " + message;
+				result.className = "result popupMsg";
+				document.body.appendChild(result);
+				setTimeout(function(){result.style.opacity = 0;}, 100);
+				setTimeout(function(){result.remove()}, 20000);
+				console.log("Result:", message);
+			}
+
+			app.config(function ($routeProvider)
+			{
+				$routeProvider
+				.when("/",{templateUrl: "start.html",
+							controller: "mainController"})
+				.when("/add_question", {templateUrl: "add_question.html",
+							controller: "mainController"})
+				.when("/start_quiz", {templateUrl: "quiz.html",
+							controller: "mainController"})
+				.when("/logout", {redirectTo: function(){
+							loggedIn = 0;
+							return "/";}
+				})
+				.otherwise({redirectTo: "/"});
+			});
+
+			var user = {};
+
+			app.controller("mainController", ["$scope", "$routeParams", "$http", function($scope, $routeParams, $http)
+			{
+				$scope.rparam = $routeParams;
+				$scope.answers = [];
+				$scope.name = user.name;
+
+				$scope.newUser = function(){
+					$http.post("/new_user", user).then(function(res){
+						// $scope.loadContent();
+						window.location = "#!/";
+					});
+				};
+
+				$scope.loadContent = function(){
+					$http.get("users").then(function(res){
+						console.log("/users response data:", res.data);
+						$scope.users = res.data;
+					});
+					$http.get("questions").then(function(res){
+						console.log("/questions response data:", res.data);
+						var allQuestions = res.data;
+						var randQIndex = ~~(Math.random()*allQuestions.length - 1);
+						var randomQ1 = allQuestions[randQIndex];
+						var randomQ2 = allQuestions[(randQIndex + 1)%allQuestions.length];
+						var randomQ3 = allQuestions[(randQIndex + 2)%allQuestions.length];
+						$scope.questions = [randomQ1, randomQ2, randomQ3];
+						
+						var randomStart = ~~(Math.random()*2);
+						for(var question of $scope.questions){
+							question.realAnswerIndex = randomStart;
+							question.scrambledAnswers = [];
+							question.scrambledAnswers[randomStart] = question.realAnswer;
+							question.scrambledAnswers[(randomStart + 1)%3] = question.fakeAnswer1;
+							question.scrambledAnswers[(randomStart + 2)%3] = question.fakeAnswer2;
+						}
+					});
+				};
+
+				$scope.submitQuiz = function(){
+					var score = 0;
+					for(var i = 0; i < $scope.questions.length; i++)
+					{
+						if($scope.answers[i] == undefined)
+						{
+							validationError("Must answer all 3 questions.");
+							return;
+						}
+						else
+						{
+							console.log($scope.questions[i].question);
+							console.log("submitted answer:", $scope.answers[i]);
+							console.log("actual answer:", $scope.questions[i].realAnswerIndex + 1);
+							console.log("---");
+							if($scope.answers[i] == $scope.questions[i].realAnswerIndex + 1)
+								score++;
+						}
+					}
+
+					user.score = `${score}/3`;
+					user.percentage = `${~~(score/3*100)}%`;
+					showResult(`Well done, ${user.name}. You scored ${score} (${user.percentage})`);
+					$scope.newUser();
+				};
+
+				$scope.newQuestion = function(){
+					var data = {
+						question: $scope.question,
+						realAnswer: $scope.realAnswer,
+						fakeAnswer1: $scope.fakeAnswer1,
+						fakeAnswer2: $scope.fakeAnswer2,
+					};
+					if($scope.question.length > 14)
+					{
+						$http.post("/new_question", data).then(function(res){
+							console.log(res);
+							window.location = "#!/";
+						});
+					}
+					else
+					{
+						validationError("Question should be at least 15 characters.");
+					}
+				};
+
+
+
+				if(loggedIn == 0)
+				{
+					loggedIn = 1;
+					window.location = "#!/";
+
+					(function loginCheck(){
+						if(loggedIn === 1)
+						{
+							var username = prompt("Please enter your name", "Name");
+							if (username !== null && username !== undefined && username !== "") {
+								loggedIn = 2;
+								user = {name: username, score: "", percentage: ""};
+								$scope.name = username;
+								$scope.loadContent();
+							}
+							else{
+								validationError("Name must not be empty.");
+								setTimeout(loginCheck, 50);;
+							}
+						}
+					})();
+				}
+				else if(loggedIn === 2){
+					$scope.loadContent();
+				}
+
+			}]);
+		</script>
+		<style type="text/css">
+			*{font-family: "futura";}
+			#wrapper{
+				width: 100%;
+				margin: 0 auto;
+			}
+			#start_button_container{
+				padding: 100px;
+			}
+			#add_question_button{
+				width: 100px;
+			}
+			.popupMsg{
+				padding: 20px;
+				background-color: #fff;
+				border: 1px #999 solid;
+				pointer-events: none;
+			}
+			.valErr
+			{
+				width: 100%;
+				position: fixed;
+				top: 50%;
+				color: #dd3333;
+				font-size: 40px;
+				transition: opacity 3000ms;
+				text-align: center;
+			}
+			.successMsg{
+				width: 100%;
+				position: fixed;
+				top: 20%;
+				color: #33dd33;
+				font-size: 40px;
+				transition: opacity 3000ms;
+				text-align: center;
+			}
+			.result
+			{
+				width: 100%;
+				position: fixed;
+				top: 20%;
+				color: #3333dd;
+				font-size: 40px;
+				transition: opacity 15000ms;
+				text-align: center;
+			}
+			.button
+			{
+				width: 50px;
+				height: 20px;
+				background-color: #ddddee;
+				border-radius: 5px;
+				cursor: default;
+				user-select: none;
+				text-align: center;
+				color: #222222;
+			}
+			.button:hover
+			{
+				background-color: #eeeeee;
+			}
+			.button:active
+			{
+				background-color: #000000;
+			}
+		</style>
+
+	</head>
+	<body>
+	<div id="wrapper">
+		<div ng-app="app">
+		<a id="home_link" href="#!/">home</a> | <a id="add_question_link" href="#!/add_question">add a question</a> | <a id="logout_link" href="#!/logout">log out</a>
+			<div ng-view="">
+			</div>
+		</div>
+	</div>
+	</body>
+</html>

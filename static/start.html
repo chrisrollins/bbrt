@@ -1,0 +1,21 @@
+<div>
+<h2>Welcome, {{name}}</h2>
+	<div id="start_button_container">
+		<a href="#!/start_quiz"><button class="button">Play</button></a>
+		<p>Click on the button above to start the trivial game.</p>
+	</div>
+	<label>Search</label>
+	<input type="text" name="searchBox" data-ng-model="searchQuery">
+	<table>
+	    <tr>
+			<th>Name</th>
+			<th>Score</th>
+			<th>Percentage</th>
+	    </tr>
+	    <tr ng-repeat="user in users | filter: searchQuery"> 
+			<td>{{user.name}}</td>
+			<td>{{user.score}}</td>
+			<td>{{user.percentage}}</td>
+	    </tr>
+	</table>
+</div>
